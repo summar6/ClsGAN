@@ -28,6 +28,7 @@ def args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--epoch", type=int, default=10, help="epoch to start training from")
+    parser.add_argument("--gpu", type=int,default=0,help="the cuda number")
     parser.add_argument("--n_epochs", type=int, default=20, help="number of epochs of training")
     parser.add_argument("--dataset_name", type=str, default="CelebA/img_align_celeba", help="name of the dataset")
     parser.add_argument("--batch_size", type=int, default=16, help="size of the batches")
@@ -53,7 +54,7 @@ class network(object):
         #parameters
         self.c_dim = len(opt.selected_attrs)
         self.img_shape = (opt.channels, opt.img_height, opt.img_width)
-        self.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu',0)
+        self.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu',self.gpu)
         self.img_height=opt.img_height
         self.dataset_name=opt.dataset_name
         self.selected_attrs=opt.selected_attrs
@@ -124,7 +125,7 @@ class network(object):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
         dataloader = DataLoader(
-            CelebADataset("../stargan/%s" % self.dataset_name, transforms_=train_transforms, mode="train", attributes=self.selected_attrs),
+            CelebADataset("%s" % self.dataset_name, transforms_=train_transforms, mode="train", attributes=self.selected_attrs),
             batch_size=self.batch_size,shuffle=True,num_workers=8)
 
         val_transforms = [
@@ -134,12 +135,8 @@ class network(object):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
         val_dataloader = DataLoader(
-            CelebADataset("../stargan/%s" % self.dataset_name, transforms_=val_transforms, mode="val", attributes=self.selected_attrs),
+            CelebADataset("%s" % self.dataset_name, transforms_=val_transforms, mode="val", attributes=self.selected_attrs),
             batch_size=10,shuffle=True)
-       # val_dataloader1 = DataLoader(
-        #    CelebADataset("../stargan/%s" % self.dataset_name, transforms_=val_transforms, mode="val",
-         #                 attributes=self.selected_attrs),
-          #  batch_size=2000, shuffle=False)
         return dataloader,val_dataloader
 
     # Tensor type
@@ -178,7 +175,32 @@ class network(object):
         gradient_penalty_c = ((gradients_c.norm(2, dim=1) - 1) ** 2).mean()
 
         return gradient_penalty,gradient_penalty_c
-     
+    def sample_images(self,epoch,number):
+        """Saves a generated sample of domain translations"""
+        self.generator.eval()
+        val_imgs, val_labels = next(iter(self.val_dataloader))
+        val_imgs = val_imgs.to(self.device)
+        val_labels = val_labels.to(self.device)
+        img_samples = None
+        for i in range(10):
+            img, label = val_imgs[i], val_labels[i]
+            # Repeat for number of label change
+            imgs = img.repeat(self.c_dim, 1, 1, 1)
+            labels = label.repeat(self.c_dim, 1)
+            labels0 = label.repeat(self.c_dim, 1)
+            # Make changes to labels
+            for sample_i, changes in enumerate(self.label_changes):
+                for col, val in changes:
+                    labels[sample_i, col] = 1 - labels[sample_i, col] if val == -1 else val
+            labels=labels-labels0
+            # Generate translations
+            gen_imgs,_ = self.generator(imgs, labels)
+            # Concatenate images by width
+            gen_imgs = torch.cat([x for x in gen_imgs.data], -1)
+            img_sample = torch.cat((img.data, gen_imgs), -1)
+            img_samples = img_sample if img_samples is None else torch.cat((img_samples, img_sample), -2)
+        save_image(img_samples.view(1, *img_samples.shape), "images/%d_%d.png" % (epoch,number), normalize=True)
+
     def loss_plot(self,epoch,i):
         x = range(len(self.loss['loss_Grec']))
 
@@ -244,7 +266,7 @@ class network(object):
                 sampled1=sampled-labels
                 sampled_c=torch.ones(labels.size(0),labels.size(1)+1).to(self.device)
                 sampled_c[:,1:14]=sampled
-                rec_imgs,fake_imgs,la = self.generator(imgs, sampled1)
+                fake_imgs,la = self.generator(imgs, sampled1)
             
                 # Real images
                 real_validity, pred_cls = self.discriminator(imgs)
@@ -273,7 +295,7 @@ class network(object):
                     # -----------------
                     #  Train Generator
                     # -----------------
-
+                    rec_imgs,_= self.generator(imgs,la)
                     # Discriminator evaluates translated image
                     fake_validity, pred_cls = self.discriminator(fake_imgs)
                     # Adversarial loss
@@ -296,7 +318,7 @@ class network(object):
 
                    
                     # If at sample interval sample and save image
-                    if i % self.sample_interval == 0 and i!=0 and epoch!=0:
+                    if i % self.sample_interval == 0 :#and i!=0 and epoch!=0:
                        self.loss['loss_Gadv'].append(loss_G_adv.item())
                        self.loss['loss_Dadv'].append(loss_D_adv.item())
                        self.loss['loss_Dcls'].append(self.lambda_cls*loss_D_cls.item())
@@ -306,9 +328,9 @@ class network(object):
                        self.loss['loss_G'].append(loss_G.item())
                        self.loss['loss_D'].append(loss_D.item())
 
-                    #   self.sample_images(epoch,i)
-                       img=torch.cat((rec_imgs,fake_imgs),0)
-                       save_image(img, "images/%d_%d.png" % (epoch,i),nrow=8,normalize=True)
+                       self.sample_images(epoch,i)
+                       #img=torch.cat((rec_imgs,fake_imgs),0)
+                       #save_image(img, "images/%d_%d.png" % (epoch,i),nrow=8,normalize=True)
                        
                        self.loss_plot(epoch,i)
                       
