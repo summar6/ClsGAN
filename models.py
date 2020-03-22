@@ -112,9 +112,6 @@ class Style(nn.Module):
         return style
 
 
-
-
-
 class GeneratorResNet(nn.Module):
     def __init__(self, img_shape=(3, 128, 128), c_dim=5):
         super(GeneratorResNet, self).__init__()
@@ -139,19 +136,13 @@ class GeneratorResNet(nn.Module):
     def forward(self, x,label):
         la,content=self.content(x)
         style=self.style(x)
-        c = style.view(style.size(0), style.size(1), 1, 1)
-        c = c.repeat(1, 1, content.size(2), content.size(3))
-       # c = torch.zeros(style.size(0), style.size(1), content.size(2), content.size(3)).cuda(1)
         label=label.view(label.size(0),label.size(1),1,1)
         label=label.repeat(1,1,content.size(2),content.size(3))
-        x = torch.cat((content, c), 1)
-        x1=torch.cat((content,label),1)
-        x= self.model(x)
-        x1= self.model(x1)
-        x = x+la*self.a
-        x1=x1+la*self.a
+        x=torch.cat((content,label),1)
+        x= self.model(x1)
+        x=x+la*self.a
 
-        return self.model1(x),self.model1(x1),style
+        return self.model1(x),style
 
 
 ##############################
