@@ -16,7 +16,7 @@ class CelebADataset(Dataset):
         self.selected_attrs = attributes
         self.files = sorted(glob.glob("%s/*.jpg" % root))
         self.files = self.files[:-2000] if mode == "train" else self.files[-2000:]
-        self.label_path = glob.glob("%s/*.txt" % 'CelebA')[0]
+        self.label_path = glob.glob("%s/*.txt" % root)[0]
         self.annotations = self.get_annotations()
 
     def get_annotations(self):
