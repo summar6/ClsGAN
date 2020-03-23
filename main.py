@@ -1,7 +1,7 @@
 
 import argparse
 import os
-import network
+from train import network
 from test_single import sample_images
 from train import network
 #parameter assign
@@ -21,9 +21,9 @@ def args():
     parser.add_argument("--img_width", type=int, default=128, help="size of image width")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--image_dir", type=str, default='output/images', help="the dir of saved images")
-    parser.add_argument("--loss_dir", type=int, default='output/loss', help="the dir of saved loss ")
-    parser.add_argument("--model_dir", type=int, default='output/models/', help="the dir of saved models")
-    parser.add_argument("--test_dir", type=int, default='output/test/', help="the dir of saved test images")
+    parser.add_argument("--loss_dir", type=str, default='output/loss', help="the dir of saved loss ")
+    parser.add_argument("--model_dir", type=str, default='output/models/', help="the dir of saved models")
+    parser.add_argument("--test_dir", type=str, default='output/test/', help="the dir of saved test images")
     parser.add_argument("--sample_interval", type=int, default=2000, help="interval between saving generator samples")
     parser.add_argument("--checkpoint_interval", type=int, default=1, help="interval between model checkpoints")
     parser.add_argument("--selected_attrs","--list",nargs="+",help="selected attributes for the CelebA dataset",
