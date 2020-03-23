@@ -3,7 +3,8 @@ A implement about paper Selective Attribute Editing Model Based Classification A
 
 The generated images by ClsGAN model
 
-![image](https://github.com/summar6/ClsGAN/output/images.png)
+![image](https://github.com/summar6/ClsGAN/tree/master/output/images.png)
+
 Training network
 
 python3 main.py --mode 'train'
