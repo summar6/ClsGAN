@@ -75,8 +75,8 @@ class network(object):
        # self.discriminator=nn.DataParallel(self.discriminator,device_ids=[0,1])
         # Load pretrained models
         if opt.epoch != 0:
-          self.generator.load_state_dict(torch.load("saved_models/generator_%d.pth" % opt.epoch))
-          self.discriminator.load_state_dict(torch.load("saved_models/discriminator_%d.pth" % opt.epoch))
+          self.generator.load_state_dict(torch.load("%s/generator_%d.pth" % (self.model_dir,opt.epoch)))
+          self.discriminator.load_state_dict(torch.load("%s/discriminator_%d.pth" % (self.model_dir,opt.epoch)))
         else:
           self.generator.apply(weights_init_normal)
           self.discriminator.apply(weights_init_normal)
