@@ -42,7 +42,7 @@ class network(object):
         self.criterion_cls=torch.nn.BCEWithLogitsLoss(size_average=False)
         # Loss weights
         self.lambda_cls = 3
-        self.lambda_gp1=50
+        self.lambda_gp1=30
         self.lambda_rec = 20
         self.lambda_gp = 10
         self.lambda_s=1
@@ -75,8 +75,8 @@ class network(object):
        # self.discriminator=nn.DataParallel(self.discriminator,device_ids=[0,1])
         # Load pretrained models
         if opt.epoch != 0:
-          self.generator.load_state_dict(torch.load("%s/generator_%d.pth" % (self.model_dir,opt.epoch)))
-          self.discriminator.load_state_dict(torch.load("%s/discriminator_%d.pth" % (self.model_dir,opt.epoch)))
+          self.generator.load_state_dict(torch.load("saved_models/generator_%d.pth" % opt.epoch))
+          self.discriminator.load_state_dict(torch.load("saved_models/discriminator_%d.pth" % opt.epoch))
         else:
           self.generator.apply(weights_init_normal)
           self.discriminator.apply(weights_init_normal)
@@ -222,7 +222,8 @@ class network(object):
                 #  Train Discriminator
                 # ---------------------
                 self.optimizer_D.zero_grad()
-                sampled = torch.Tensor(np.random.randint(0, 2, (imgs.size(0), self.c_dim))).to(self.device)
+                trg=torch.randperm(labels.size(0))
+                sampled = labels[trg].to(self.device)
                 sampled1=sampled-labels
                 sampled_c=torch.ones(labels.size(0),labels.size(1)+1).to(self.device)
                 sampled_c[:,1:14]=sampled
@@ -277,7 +278,7 @@ class network(object):
                         "\r[Epoch %d/%d][Batch %d/%d][D_adv:%f,g_pen:%f,D_cls:%f,real:%f,fake:%f,c_pen:%f] [G_adv:%f,G_cls:%f,G_rec:%f,G_att:%f]" % (epoch,self.n_epochs,i,len(self.dataloader),loss_D_adv.item(),gradient_penalty.item(),(self.lambda_cls*loss_D_cls).item(),a.item(),b.item(),self.lambda_cls*self.lambda_gp1*c_gra.item(), loss_G_adv.item(),loss_G_cls.item(),(self.lambda_rec*loss_G_rec).item(),(loss_G_att).item()))
 
                     # If at sample interval sample and save image
-                    if i % self.sample_interval == 0 :#and i!=0 and epoch!=0:
+                    if i % self.sample_interval == 0 and epoch!=0 and epoch!=1:#and i!=0 and epoch!=0:
                        self.loss['loss_Gadv'].append(loss_G_adv.item())
                        self.loss['loss_Dadv'].append(loss_D_adv.item())
                        self.loss['loss_Dcls'].append(self.lambda_cls*loss_D_cls.item())
